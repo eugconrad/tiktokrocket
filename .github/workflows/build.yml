@@ -33,8 +33,7 @@ jobs:
         run: |
           poetry build
 
-      - name: Semantic Release
-        name: semantic-poetry
+      - name: Run Semantic Release
         uses: matteo4diani/poetry-semantic-release@v0
         with:
           versioning: "semver"  # Использовать Semantic Versioning
