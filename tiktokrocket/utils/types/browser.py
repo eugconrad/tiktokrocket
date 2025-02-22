@@ -146,6 +146,15 @@ class Browser:
         self.driver.execute_script("window.localStorage.clear();")
         self.driver.execute_script("window.sessionStorage.clear();")
 
+    def add_cookies(self, cookies: list):
+        """
+        Adds many cookies from the list to the current session.
+        """
+        for cookie in cookies:
+            if not isinstance(cookie, dict):
+                continue
+            self.driver.add_cookie(cookie)
+
     def quit(self):
         """
         Quits the browser session and closes the browser window.
