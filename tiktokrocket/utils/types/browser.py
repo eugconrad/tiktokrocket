@@ -101,6 +101,8 @@ class Browser:
         self.options.add_argument("--ignore-certificate-errors")
         self.options.add_argument("--disable-extensions")
 
+        self.options.page_load_strategy = 'eager'
+
         # --- Selenium wire options ---
         self.sw_options = {}
         self.sw_options['verify_ssl'] = False
