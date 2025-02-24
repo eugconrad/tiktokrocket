@@ -42,10 +42,7 @@ class Browser:
             browser_path: str,
             headless: bool = False,
             proxy: str = None,
-            user_agent: str = None,
-            maximize_window: bool = True,
-            window_size_width: int = 1280,
-            window_size_height: int = 720
+            user_agent: str = None
     ):
         """
         Creates and configures a new browser instance with specified settings.
@@ -55,9 +52,6 @@ class Browser:
             headless (bool): Whether to run the browser in headless mode.
             proxy (str, optional): Proxy server address with optional authentication.
             user_agent (str, optional): Custom user agent string.
-            maximize_window (bool): Whether to maximize the browser window.
-            window_size_width (int): Width of the browser window if not maximized.
-            window_size_height (int): Height of the browser window if not maximized.
         """
         # --- Browser path ---
         driver_executable_path = os.path.join(browser_path, 'chromedriver.exe')
@@ -124,7 +118,6 @@ class Browser:
             version_main=127,
             headless=self.headless
         )
-        self.driver.implicitly_wait(0.5)
         stealth(
             self.driver,
             languages=["en-US", "en"],
@@ -134,13 +127,6 @@ class Browser:
             renderer="Intel Iris OpenGL Engine",
             fix_hairline=True,
         )
-
-        if maximize_window:
-            self.driver.maximize_window()
-        else:
-            self.driver.set_window_size(width=window_size_width, height=window_size_height)
-
-        self.driver.implicitly_wait(0.5)
 
     @staticmethod
     def _get_proxy(proxy):
