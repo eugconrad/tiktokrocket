@@ -1,0 +1,9 @@
+{
+  "api_endpoints": {
+    "login": "https://tiktok.eugconrad.com/api/auth/login",
+    "get_me": "https://tiktok.eugconrad.com/api/user/get_me",
+    "download_chrome": "https://tiktok.eugconrad.com/api/download_chrome"
+  },
+  "timeout": 30,
+  "max_retries": 3
+}
