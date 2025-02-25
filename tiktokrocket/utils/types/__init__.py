@@ -12,3 +12,4 @@ Social: @eugconrad – Telegram, Lolzteam
         © Copyright 2024
 """
 from .browser import Browser
+from .updater import Updater
