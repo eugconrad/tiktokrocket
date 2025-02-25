@@ -11,3 +11,4 @@ Social: @eugconrad – Telegram, Lolzteam
       https://eugconrad.com
         © Copyright 2024
 """
+from .config import Config
