@@ -50,20 +50,20 @@ class TikTokRocket:
         проверяя ОС, загружая переменные окружения и проверяя аутентификацию.
         """
         # Создаем окно загрузки
-        loading_window = UiWindow(title="TikTokRocket", geometry="300x60")
-        loading_window_label = ttk.Label(loading_window.root, text="Инициализация...")
+        self.loading_window = UiWindow(title="TikTokRocket", geometry="300x100")
+        loading_window_label = ttk.Label(self.loading_window.root, text="Инициализация...")
         loading_window_label.pack(pady=10)
 
-        loading_window_progress = ttk.Progressbar(loading_window.root, mode='indeterminate')
+        loading_window_progress = ttk.Progressbar(self.loading_window.root, mode='indeterminate')
         loading_window_progress.pack(fill=tk.X, padx=20)
         loading_window_progress.start()
-        loading_window.root.update()
+        self.loading_window.root.update()
 
         self._app_name = "TikTokRocket-core"
         self._system_name = platform.system()
 
         loading_window_label.config(text="Проверка совместимости...")
-        loading_window.root.update()
+        self.loading_window.root.update()
 
         try:
             self._validate_os()
@@ -76,7 +76,7 @@ class TikTokRocket:
         logger.debug(f"Директория данных: {self.data_dir}")
 
         loading_window_label.config(text="Создание рабочих директорий...")
-        loading_window.root.update()
+        self.loading_window.root.update()
 
         try:
             self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -97,7 +97,7 @@ class TikTokRocket:
 
         # Определяем пути к исполняемым файлам
         loading_window_label.config(text="Настройка путей...")
-        loading_window.root.update()
+        self.loading_window.root.update()
 
         if self._system_name.lower() == "windows":
             self.browser_executable_file = self.browser_dir / "chrome.exe"
@@ -123,7 +123,7 @@ class TikTokRocket:
         logger.debug(f"Файл конфигурации: {self.env_file}")
 
         loading_window_label.config(text="Загрузка конфигурации...")
-        loading_window.root.update()
+        self.loading_window.root.update()
 
         try:
             self.env = Env(env_file=self.env_file)
@@ -134,7 +134,7 @@ class TikTokRocket:
 
         # Инициализация клиента
         loading_window_label.config(text="Инициализация клиента...")
-        loading_window.root.update()
+        self.loading_window.root.update()
 
         access_token = self.env.get("access_token")
         logger.debug(f"Токен доступа: {'есть' if access_token else 'отсутствует'}")
@@ -142,17 +142,18 @@ class TikTokRocket:
 
         # Проверка аутентификации
         loading_window_label.config(text="Проверка аутентификации...")
-        loading_window.root.update()
+        self.loading_window.root.update()
 
         if not self._check_auth():
             logger.warning("Пользователь не аутентифицирован, запуск процесса входа")
             self._run_login_window()
+            self.loading_window.root.update()
         else:
             logger.info("Пользователь успешно аутентифицирован")
 
         # Инициализация и установка браузера
         loading_window_label.config(text="Инициализация браузера...")
-        loading_window.root.update()
+        self.loading_window.root.update()
 
         logger.info("Инициализация Updater")
         self.updater = Updater(
@@ -165,7 +166,7 @@ class TikTokRocket:
         is_browser_installed = self.updater.is_browser_installed()
         if not is_browser_installed:
             loading_window_label.config(text="Установка браузера (это займет время)...")
-            loading_window.root.update()
+            self.loading_window.root.update()
 
             logger.info("Запуск установки браузера")
             try:
@@ -180,7 +181,7 @@ class TikTokRocket:
                 raise
 
         # Закрываем окно загрузки после успешной инициализации
-        loading_window.close()
+        self.loading_window.close()
 
     def _validate_os(self) -> None:
         """
@@ -233,17 +234,27 @@ class TikTokRocket:
         """
         logger.info("Запуск процесса аутентификации через GUI")
 
-        login_window = UiWindow(title=self._app_name, geometry="300x220")
-        tk.Label(login_window.root, text="Вход", font=("Arial", 18, "bold")).pack(pady=10)
+        # Create login window as a Toplevel window
+        login_window = tk.Toplevel()
+        login_window.title(self._app_name)
+        login_window.geometry("300x220")
 
-        # Поле ввода имени пользователя
-        tk.Label(login_window.root, text="Логин", font=("Arial", 12)).pack(anchor="w", padx=30)
-        login_entry = tk.Entry(login_window.root, font=("Arial", 12))
+        # Make the window modal
+        login_window.grab_set()
+
+        # Don't set it as transient to avoid the cycle
+        # login_window.transient(self.loading_window.root)  # Remove this line
+
+        tk.Label(login_window, text="Вход", font=("Arial", 18, "bold")).pack(pady=10)
+
+        # Username field
+        tk.Label(login_window, text="Логин", font=("Arial", 12)).pack(anchor="w", padx=30)
+        login_entry = tk.Entry(login_window, font=("Arial", 12))
         login_entry.pack(fill="x", padx=30, pady=(0, 10))
 
-        # Поле ввода пароля
-        tk.Label(login_window.root, text="Пароль", font=("Arial", 12)).pack(anchor="w", padx=30)
-        password_entry = tk.Entry(login_window.root, font=("Arial", 12), show="*")
+        # Password field
+        tk.Label(login_window, text="Пароль", font=("Arial", 12)).pack(anchor="w", padx=30)
+        password_entry = tk.Entry(login_window, font=("Arial", 12), show="*")
         password_entry.pack(fill="x", padx=30, pady=(0, 15))
 
         def _login():
@@ -262,11 +273,9 @@ class TikTokRocket:
 
                 if access_token:
                     logger.info("Успешная аутентификация")
-                    # Сохраняем токен в .env файл
                     self.env.set(key="access_token", value=access_token)
                     logger.debug("Токен доступа сохранен в конфигурации")
-                    messagebox.showinfo("Успех", "Авторизация прошла успешно!")
-                    login_window.close()
+                    login_window.destroy()  # Use destroy instead of close
                 else:
                     logger.warning("Неудачная попытка входа")
                     messagebox.showerror("Ошибка", "Войти не удалось!")
@@ -274,11 +283,10 @@ class TikTokRocket:
                 logger.error(f"Ошибка аутентификации: {str(err)}")
                 messagebox.showerror("Ошибка", f"Ошибка авторизации: {str(err)}")
 
-        # Кнопка входа
-        login_button = tk.Button(login_window.root, text="Войти", font=("Arial", 12), command=_login)
+        # Login button
+        login_button = tk.Button(login_window, text="Войти", font=("Arial", 12), command=_login)
         login_button.pack(padx=30, fill="x")
 
         logger.debug("Отображение окна аутентификации")
-        login_window.root.mainloop()
-        login_window.root.update()
+        login_window.wait_window()  # This will block until window is destroyed
         logger.info("Процесс аутентификации завершен")
