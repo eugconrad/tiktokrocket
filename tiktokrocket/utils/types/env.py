@@ -1,6 +1,6 @@
 """
-File: browser.py
-Created: 11.04.2025
+File: env.py
+Created: 09.04.2025
 
 This source code constitutes confidential information and is the 
 exclusive property of the Author. You are granted a non-exclusive, 
