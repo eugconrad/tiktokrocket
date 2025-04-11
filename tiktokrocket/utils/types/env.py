@@ -24,6 +24,7 @@ Copyright © 2025 All Rights Reserved
 """
 import os
 from pathlib import Path
+from typing import Optional
 
 from dotenv import load_dotenv, set_key, unset_key
 
@@ -52,7 +53,7 @@ class Env:
             variable, returning a default value if the variable is not found.
     """
 
-    def __init__(self, env_file: Path):
+    def __init__(self, env_file: Path) -> None:
         """
         Initialize the Env instance by loading environment variables from a .env file.
 
@@ -62,7 +63,7 @@ class Env:
         self.env_file = env_file
         self.env = load_dotenv(self.env_file)
 
-    def set(self, key: str, value: str):
+    def set(self, key: str, value: str) -> None:
         """
         Set an environment variable in the .env file and the current
         environment.
@@ -74,7 +75,7 @@ class Env:
         set_key(dotenv_path=self.env_file, key_to_set=key, value_to_set=value)
         os.environ[key] = value
 
-    def remove(self, key: str):
+    def remove(self, key: str) -> None:
         """
         Remove an environment variable from the .env file and the current
         environment.
@@ -87,7 +88,7 @@ class Env:
             del os.environ[key]
 
     @staticmethod
-    def get(key: str, default=None):
+    def get(key: str, default: Optional[str] = None) -> Optional[str]:
         """
         Retrieve the value of an environment variable.
 
