@@ -1,5 +1,5 @@
 """
-File: config.py
+File: test.py
 Created: 09.04.2025
 
 This source code constitutes confidential information and is the 
@@ -22,11 +22,20 @@ Contacts:
 Website: https://eugconrad.com
 Copyright © 2025 All Rights Reserved
 """
-from dataclasses import dataclass
+import time
 
+from tiktokrocket import TikTokRocket, Browser
 
-@dataclass
-class ApiConfig:
-    BASE_URL: str = "https://tiktok.eugconrad.com/"  # Замените на реальный URL
-    REQUEST_TIMEOUT: int = 10
-    AUTH_HEADER: str = "Authorization"
+rocket = TikTokRocket()
+
+browser = Browser()
+browser.create(
+    browser_executable_file=rocket.browser_executable_file,
+    driver_executable_file=rocket.driver_executable_file
+)
+
+browser.open("https://ident.me")
+
+time.sleep(60)
+
+browser.quit()

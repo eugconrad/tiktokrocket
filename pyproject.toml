@@ -1,6 +1,6 @@
 [project]
 name = "tiktokrocket"
-version = "1.0.3"
+version = "1.1.0"
 description = ""
 authors = [
     {name = "eugconrad"}
@@ -15,10 +15,17 @@ dependencies = [
     "selenium-stealth (>=1.0.6,<2.0.0)",
     "fake-useragent (>=2.0.3,<3.0.0)",
     "undetected-chromedriver (>=3.5.5,<4.0.0)",
-    "blinker (==1.7.0)"
+    "blinker (==1.7.0)",
+    "python-dotenv (>=1.0.1,<2.0.0)",
+    "platformdirs (>=4.3.7,<5.0.0)",
+    "loguru (>=0.7.3,<0.8.0)"
 ]
 
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry.dependencies]
+python = ">=3.11,<4.0"
