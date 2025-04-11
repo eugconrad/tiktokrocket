@@ -38,9 +38,17 @@ from tiktokrocket.data.config import ApiConfig
 
 class Updater:
     """
-    Класс для управления установкой браузера Chrome.
-    Обеспечивает проверку существующей установки, очистку директорий,
-    загрузку последней версии и установку.
+    The Updater class manages the installation and maintenance of a browser and its driver.
+
+    Methods:
+        __init__: Initializes the Updater with directories and executable paths.
+        _set_executable_permissions: Sets executable permissions for a file.
+        _handle_macos_permissions: Removes quarantine attributes on macOS.
+        _clear_browser_directory: Clears the browser directory of all contents.
+        _download_browser: Downloads the browser package for the current OS.
+        is_browser_installed: Checks if the browser and driver are installed and executable.
+        install_browser: Installs or reinstalls the browser, handling all steps from download
+        to permission setting.
     """
 
     def __init__(
