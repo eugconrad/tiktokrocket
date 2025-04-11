@@ -33,43 +33,7 @@ from loguru import logger
 from tiktokrocket.utils.types.env import Env
 from tiktokrocket.utils.types.client import Client
 from tiktokrocket.utils.types.updater import Updater
-
-
-class LoadingWindow:
-    """Окно для отображения процесса загрузки"""
-
-    def __init__(self):
-        self.root = tk.Tk()
-        self.root.title("TikTokRocket - Загрузка")
-        self.root.geometry("300x100")
-        self.root.resizable(False, False)
-
-        # Центрирование окна
-        self._center_window()
-
-        self.label = ttk.Label(self.root, text="Инициализация приложения...")
-        self.label.pack(pady=10)
-
-        self.progress = ttk.Progressbar(self.root, mode='indeterminate')
-        self.progress.pack(fill=tk.X, padx=20)
-        self.progress.start()
-
-    def _center_window(self):
-        self.root.update_idletasks()
-        width = self.root.winfo_width()
-        height = self.root.winfo_height()
-        x = (self.root.winfo_screenwidth() // 2) - (width // 2)
-        y = (self.root.winfo_screenheight() // 2) - (height // 2)
-        self.root.geometry(f'+{x}+{y}')
-
-    def update_text(self, text):
-        """Обновляет текст загрузки"""
-        self.label.config(text=text)
-        self.root.update()
-
-    def close(self):
-        """Закрывает окно загрузки"""
-        self.root.destroy()
+from tiktokrocket.utils.types.ui_window import UiWindow
 
 
 class TikTokRocket:
@@ -86,32 +50,39 @@ class TikTokRocket:
         проверяя ОС, загружая переменные окружения и проверяя аутентификацию.
         """
         # Создаем окно загрузки
-        self.loading_window = LoadingWindow()
-        self.loading_window.update_text("Инициализация TikTokRocket...")
+        loading_window = UiWindow(title="TikTokRocket", geometry="300x60")
+        loading_window_label = ttk.Label(loading_window.root, text="Инициализация...")
+        loading_window_label.pack(pady=10)
 
-        logger.info("Инициализация TikTokRocket")
+        loading_window_progress = ttk.Progressbar(loading_window.root, mode='indeterminate')
+        loading_window_progress.pack(fill=tk.X, padx=20)
+        loading_window_progress.start()
+        loading_window.root.update()
+
         self._app_name = "TikTokRocket-core"
         self._system_name = platform.system()
 
+        loading_window_label.config(text="Проверка совместимости...")
+        loading_window.root.update()
+
         try:
-            self.loading_window.update_text("Проверка операционной системы...")
             self._validate_os()
-            logger.debug("Проверка ОС выполнена успешно")
-        except RuntimeError as e:
-            logger.error(f"Ошибка проверки ОС: {e}")
-            self.loading_window.update_text(f"Ошибка: {e}")
+            logger.debug("Проверка совместимости выполнена успешно")
+        except RuntimeError as err:
+            logger.error(f"Ошибка Проверки совместимости: {err}")
             raise
 
         self.data_dir = Path(user_data_dir(self._app_name))
         logger.debug(f"Директория данных: {self.data_dir}")
 
+        loading_window_label.config(text="Создание рабочих директорий...")
+        loading_window.root.update()
+
         try:
-            self.loading_window.update_text("Создание директорий...")
             self.data_dir.mkdir(parents=True, exist_ok=True)
             logger.info("Директория данных создана или уже существует")
-        except Exception as e:
-            logger.error(f"Ошибка создания директории данных: {e}")
-            self.loading_window.update_text(f"Ошибка: {e}")
+        except Exception as err:
+            logger.error(f"Ошибка создания директории данных: {err}")
             raise
 
         self.browser_dir = self.data_dir / "selenium-browser"
@@ -120,13 +91,14 @@ class TikTokRocket:
         try:
             self.browser_dir.mkdir(parents=True, exist_ok=True)
             logger.info("Директория браузера создана или уже существует")
-        except Exception as e:
-            logger.error(f"Ошибка создания директории браузера: {e}")
-            self.loading_window.update_text(f"Ошибка: {e}")
+        except Exception as err:
+            logger.error(f"Ошибка создания директории браузера: {err}")
             raise
 
         # Определяем пути к исполняемым файлам
-        self.loading_window.update_text("Настройка путей...")
+        loading_window_label.config(text="Настройка путей...")
+        loading_window.root.update()
+
         if self._system_name.lower() == "windows":
             self.browser_executable_file = self.browser_dir / "chrome.exe"
             self.driver_executable_file = self.browser_dir / "chromedriver.exe"
@@ -141,9 +113,8 @@ class TikTokRocket:
             self.driver_executable_file = self.browser_dir / "chromedriver"
 
         else:
-            error = "Неподдерживаемая операционная система"
-            self.loading_window.update_text(error)
-            raise RuntimeError(error)
+            err = "Неподдерживаемая операционная система"
+            raise RuntimeError(err)
 
         logger.debug(f"Файл драйвера: {self.driver_executable_file}")
         logger.debug(f"Файл браузера: {self.browser_executable_file}")
@@ -151,31 +122,38 @@ class TikTokRocket:
         self.env_file = self.data_dir / "config.env"
         logger.debug(f"Файл конфигурации: {self.env_file}")
 
+        loading_window_label.config(text="Загрузка конфигурации...")
+        loading_window.root.update()
+
         try:
-            self.loading_window.update_text("Загрузка конфигурации...")
             self.env = Env(env_file=self.env_file)
             logger.info("Конфигурация окружения загружена")
-        except Exception as e:
-            logger.error(f"Ошибка загрузки конфигурации: {e}")
-            self.loading_window.update_text(f"Ошибка: {e}")
+        except Exception as err:
+            logger.error(f"Ошибка загрузки конфигурации: {err}")
             raise
 
         # Инициализация клиента
-        self.loading_window.update_text("Инициализация клиента...")
+        loading_window_label.config(text="Инициализация клиента...")
+        loading_window.root.update()
+
         access_token = self.env.get("access_token")
         logger.debug(f"Токен доступа: {'есть' if access_token else 'отсутствует'}")
         self.client = Client(access_token)
 
         # Проверка аутентификации
-        self.loading_window.update_text("Проверка аутентификации...")
+        loading_window_label.config(text="Проверка аутентификации...")
+        loading_window.root.update()
+
         if not self._check_auth():
             logger.warning("Пользователь не аутентифицирован, запуск процесса входа")
-            self._run_login_flow()
+            self._run_login_window()
         else:
             logger.info("Пользователь успешно аутентифицирован")
 
         # Инициализация и установка браузера
-        self.loading_window.update_text("Инициализация браузера...")
+        loading_window_label.config(text="Инициализация браузера...")
+        loading_window.root.update()
+
         logger.info("Инициализация Updater")
         self.updater = Updater(
             data_dir=self.data_dir,
@@ -184,24 +162,25 @@ class TikTokRocket:
             browser_executable_file=self.browser_executable_file,
         )
 
-        self.loading_window.update_text("Установка браузера...")
-        logger.info("Запуск установки браузера")
-        try:
-            result = self.updater.install_browser()
-            if result:
-                logger.info("Браузер успешно установлен")
-                self.loading_window.update_text("Готово!")
-            else:
-                error = "Ошибка установки браузера"
-                self.loading_window.update_text(error)
-                raise RuntimeError(error)
-        except Exception as e:
-            logger.error(f"Ошибка установки браузера: {e}")
-            self.loading_window.update_text(f"Ошибка: {e}")
-            raise
+        is_browser_installed = self.updater.is_browser_installed()
+        if not is_browser_installed:
+            loading_window_label.config(text="Установка браузера (это займет время)...")
+            loading_window.root.update()
+
+            logger.info("Запуск установки браузера")
+            try:
+                result = self.updater.install_browser()
+                if result:
+                    logger.info("Браузер успешно установлен")
+                else:
+                    error = "Ошибка установки браузера"
+                    raise RuntimeError(error)
+            except Exception as err:
+                logger.error(f"Ошибка установки браузера: {err}")
+                raise
 
         # Закрываем окно загрузки после успешной инициализации
-        self.loading_window.close()
+        loading_window.close()
 
     def _validate_os(self) -> None:
         """
@@ -239,31 +218,32 @@ class TikTokRocket:
             logger.error(f"Ошибка при проверке аутентификации: {e}")
             return False
 
-    def _run_login_flow(self) -> None:
+    def _run_login_window(self) -> None:
         """
-        Запускает процесс входа через GUI Tkinter.
+        Executes the login flow using a GUI for user authentication.
 
-        Создает окно для ввода учетных данных, сохраняет токен доступа
-        при успешной аутентификации и отображает сообщения об ошибках.
+        This method creates a login window with fields for username and password
+        input. It handles user input validation and attempts to authenticate the
+        user via the API. If successful, it saves the access token to the environment
+        configuration and closes the login window. Displays appropriate messages
+        for successful or failed login attempts.
+
+        Raises:
+            Exception: If an error occurs during the authentication process.
         """
         logger.info("Запуск процесса аутентификации через GUI")
 
-        root = tk.Tk()
-        root.title(self._app_name)
-        root.geometry("300x220")
-        root.resizable(False, False)
-
-        # Заголовок
-        tk.Label(root, text="Вход", font=("Arial", 18, "bold")).pack(pady=10)
+        login_window = UiWindow(title=self._app_name, geometry="300x220")
+        tk.Label(login_window.root, text="Вход", font=("Arial", 18, "bold")).pack(pady=10)
 
         # Поле ввода имени пользователя
-        tk.Label(root, text="Логин", font=("Arial", 12)).pack(anchor="w", padx=30)
-        login_entry = tk.Entry(root, font=("Arial", 12))
+        tk.Label(login_window.root, text="Логин", font=("Arial", 12)).pack(anchor="w", padx=30)
+        login_entry = tk.Entry(login_window.root, font=("Arial", 12))
         login_entry.pack(fill="x", padx=30, pady=(0, 10))
 
         # Поле ввода пароля
-        tk.Label(root, text="Пароль", font=("Arial", 12)).pack(anchor="w", padx=30)
-        password_entry = tk.Entry(root, font=("Arial", 12), show="*")
+        tk.Label(login_window.root, text="Пароль", font=("Arial", 12)).pack(anchor="w", padx=30)
+        password_entry = tk.Entry(login_window.root, font=("Arial", 12), show="*")
         password_entry.pack(fill="x", padx=30, pady=(0, 15))
 
         def _login():
@@ -286,7 +266,7 @@ class TikTokRocket:
                     self.env.set(key="access_token", value=access_token)
                     logger.debug("Токен доступа сохранен в конфигурации")
                     messagebox.showinfo("Успех", "Авторизация прошла успешно!")
-                    root.destroy()
+                    login_window.close()
                 else:
                     logger.warning("Неудачная попытка входа")
                     messagebox.showerror("Ошибка", "Войти не удалось!")
@@ -295,9 +275,10 @@ class TikTokRocket:
                 messagebox.showerror("Ошибка", f"Ошибка авторизации: {str(err)}")
 
         # Кнопка входа
-        login_button = tk.Button(root, text="Войти", font=("Arial", 12), command=_login)
+        login_button = tk.Button(login_window.root, text="Войти", font=("Arial", 12), command=_login)
         login_button.pack(padx=30, fill="x")
 
         logger.debug("Отображение окна аутентификации")
-        root.mainloop()
+        login_window.root.mainloop()
+        login_window.root.update()
         logger.info("Процесс аутентификации завершен")
