@@ -28,11 +28,12 @@ from tiktokrocket import TikTokRocket, Browser
 
 rocket = TikTokRocket()
 
-browser = Browser()
-browser.create(
+browser = Browser(
     browser_executable_file=rocket.browser_executable_file,
     driver_executable_file=rocket.driver_executable_file
 )
+
+browser.create()
 
 browser.open("https://ident.me")
 
