@@ -22,11 +22,23 @@ Contacts:
 Website: https://eugconrad.com
 Copyright © 2025 All Rights Reserved
 """
-from dataclasses import dataclass
 
 
-@dataclass
 class ApiConfig:
+    """
+    Configuration class for API settings.
+
+    Attributes:
+        BASE_URL (str): The base URL for the API endpoint.
+        REQUEST_TIMEOUT (int): The timeout duration for API requests in seconds.
+        AUTH_HEADER (str): The header key used for authorization in API requests.
+    """
     BASE_URL: str = "https://tiktok.eugconrad.com/"  # Замените на реальный URL
     REQUEST_TIMEOUT: int = 10
     AUTH_HEADER: str = "Authorization"
+
+    def __str__(self):
+        pass
+
+    def __del__(self):
+        pass
