@@ -2,9 +2,9 @@
 File: grizzly.py
 Created: 14.04.2025
 
-This source code constitutes confidential information and is the 
-exclusive property of the Author. You are granted a non-exclusive, 
-non-transferable license to use this code for personal, non-commercial 
+This source code constitutes confidential information and is the
+exclusive property of the Author. You are granted a non-exclusive,
+non-transferable license to use this code for personal, non-commercial
 purposes only.
 
 STRICTLY PROHIBITED:
@@ -55,13 +55,12 @@ class GrizzlySMS(BaseAPI, ABC):
         super().__init__(api_key, "http://api.7grizzlysms.com/stubs/handler_api.php")
         self.provider = "Grizzly SMS"
 
-    async def get_number(self, country: str, max_price: Optional[None] = None, service: str = "lf") -> dict:
+    async def get_number(self, country: str, service: str = "lf") -> dict:
         """
         Asynchronously retrieves a phone number from the Grizzly SMS provider.
 
         Args:
             country (str): The country code for which to retrieve the phone number.
-            max_price (Optional[None]): The maximum price for the phone number, defaults to None.
             service (str): The service identifier, defaults to "lf".
 
         Returns:
@@ -131,11 +130,7 @@ class GrizzlySMS(BaseAPI, ABC):
         if response_text.startswith("STATUS_OK"):
             _, code = response_text.split(":")
             return {"status": "success", "code": code}
-        else:
-            return {
-                "status": "pending" if response_text.startswith("STATUS_WAIT") else "error",
-                "message": response_text
-            }
+        return {"status": "pending" if response_text.startswith("STATUS_WAIT") else "error", "message": response_text}
 
     async def get_balance(self) -> float:
         """
