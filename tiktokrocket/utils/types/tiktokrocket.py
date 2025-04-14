@@ -38,16 +38,42 @@ from tiktokrocket.utils.types.ui_window import UiWindow
 
 class TikTokRocket:
     """
-    Класс TikTokRocket управляет инициализацией и процессом аутентификации
-    для приложения TikTokRocket. Настраивает необходимые директории,
-    проверяет операционную систему, загружает переменные окружения
-    и обрабатывает аутентификацию пользователя через GUI Tkinter.
+    The TikTokRocket class initializes and manages the TikTokRocket application,
+    setting up directories, loading environment configurations, and handling
+    authentication and browser installation.
+
+    Attributes:
+        loading_window (UiWindow): The loading window displayed during initialization.
+        _app_name (str): The name of the application.
+        _system_name (str): The name of the operating system.
+        data_dir (Path): The directory for storing application data.
+        browser_dir (Path): The directory for the browser installation.
+        browser_executable_file (Path): The path to the browser executable.
+        driver_executable_file (Path): The path to the browser driver executable.
+        env_file (Path): The path to the environment configuration file.
+        env (Env): The environment configuration manager.
+        client (Client): The client for interacting with the TikTokRocket API.
+        updater (Updater): The updater for managing browser installations.
+
+    Methods:
+        __init__(): Initializes the TikTokRocket instance, setting up directories,
+            loading environment configurations, and checking authentication.
+        _validate_os(): Validates the operating system compatibility.
+        _check_auth(): Checks user authentication status.
+        _run_login_window(): Executes the login flow using a GUI for user authentication.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
-        Инициализирует экземпляр TikTokRocket, настраивая директории,
-        проверяя ОС, загружая переменные окружения и проверяя аутентификацию.
+        Initializes the TikTokRocket instance, setting up the loading window,
+        validating the operating system, creating necessary directories, and
+        configuring paths for browser and driver executables. Loads environment
+        configurations, initializes the client, checks user authentication, and
+        manages browser installation using the Updater class.
+
+        Raises:
+            RuntimeError: If the operating system is unsupported or if browser
+            installation fails.
         """
         # Создаем окно загрузки
         self.loading_window = UiWindow(title="TikTokRocket", geometry="300x100")
@@ -185,24 +211,31 @@ class TikTokRocket:
 
     def _validate_os(self) -> None:
         """
-        Проверяет совместимость операционной системы с TikTokRocket.
+        Validates the operating system compatibility for the TikTokRocket application.
+
+        Logs the current operating system and checks if it is one of the supported
+        systems: Windows, Linux, or MacOS. If the operating system is unsupported,
+        logs an error message and raises a RuntimeError.
 
         Raises:
-            RuntimeError: Если ОС не Windows или Linux
+            RuntimeError: If the operating system is not supported.
         """
         logger.debug(f"Проверка ОС: {platform.system()}")
 
         if self._system_name.lower() not in ["windows", "linux", "darwin"]:
-            error_msg = f"{self._app_name} поддерживается только на Windows, Linux, MacOS"
+            error_msg = f"{self._app_name} поддерживается только на Windows, Linux, macOS"
             logger.error(error_msg)
             raise RuntimeError(error_msg)
 
     def _check_auth(self) -> bool:
         """
-        Проверяет аутентификацию пользователя через получение данных пользователя.
+        Checks the user's authentication status by retrieving user data from the API.
+
+        Logs the authentication process and returns a boolean indicating whether
+        the user is authenticated.
 
         Returns:
-            bool: True если данные получены успешно, иначе False
+            bool: True if the user is authenticated, False otherwise.
         """
         logger.debug("Проверка аутентификации пользователя")
         try:
