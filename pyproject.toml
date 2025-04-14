@@ -18,7 +18,8 @@ dependencies = [
     "blinker (==1.7.0)",
     "python-dotenv (>=1.0.1,<2.0.0)",
     "platformdirs (>=4.3.7,<5.0.0)",
-    "loguru (>=0.7.3,<0.8.0)"
+    "loguru (>=0.7.3,<0.8.0)",
+    "aiohttp (>=3.11.16,<4.0.0)"
 ]
 
 
@@ -29,3 +30,12 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.dependencies]
 python = ">=3.11,<4.0"
+
+
+[tool.pylint.messages_control]
+disable = [
+    "arguments-differ",
+    "signature-differ",
+    "line-too-long",
+    "broad-exception-raised",
+]
