@@ -1,6 +1,6 @@
 [project]
 name = "tiktokrocket"
-version = "1.1.3"
+version = "1.1.4"
 description = ""
 authors = [
     {name = "eugconrad"}
@@ -38,4 +38,5 @@ disable = [
     "signature-differ",
     "line-too-long",
     "broad-exception-raised",
+    "broad-exception-caught"
 ]
