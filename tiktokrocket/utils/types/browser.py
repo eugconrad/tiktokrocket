@@ -75,7 +75,7 @@ class Browser:
         # --- Browser path ---
         self.browser_executable_file = browser_executable_file
         self.driver_executable_file = driver_executable_file
-        self.user_data_dir = self.browser_executable_file.parent / "user_data_dir"
+        # self.user_data_dir = self.browser_executable_file.parent / "user_data_dir"
 
     def create(
             self,
@@ -114,7 +114,7 @@ class Browser:
         # --- Browser ---
         self.driver = uc.Chrome(
             options=options,
-            user_data_dir=self.user_data_dir.absolute().as_posix(),
+            # user_data_dir=self.user_data_dir.absolute().as_posix(),
             driver_executable_path=self.driver_executable_file.absolute().as_posix(),
             browser_executable_path=self.browser_executable_file.absolute().as_posix(),
             headless=self.headless,
