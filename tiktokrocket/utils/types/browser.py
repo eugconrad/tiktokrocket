@@ -50,7 +50,7 @@ class Browser:
         _get_proxy(proxy): Parses a proxy string and returns proxy details.
         _get_user_agent(user_agent): Generates or returns a user agent string.
         _get_chrome_options(user_agent): Configures and returns ChromeOptions.
-        open(url): Opens the specified URL in the browser.
+        open(url, in_new_tab): Opens the specified URL in the browser.
         reset(): Resets the browser session by clearing cookies and storage.
         add_cookies(cookies): Adds cookies to the current browser session.
         get_cookies(): Retrieves all cookies from the current browser session.
@@ -75,7 +75,6 @@ class Browser:
         # --- Browser path ---
         self.browser_executable_file = browser_executable_file
         self.driver_executable_file = driver_executable_file
-        # self.user_data_dir = self.browser_executable_file.parent / "user_data_dir"
 
     def create(
             self,
@@ -114,7 +113,6 @@ class Browser:
         # --- Browser ---
         self.driver = uc.Chrome(
             options=options,
-            # user_data_dir=self.user_data_dir.absolute().as_posix(),
             driver_executable_path=self.driver_executable_file.absolute().as_posix(),
             browser_executable_path=self.browser_executable_file.absolute().as_posix(),
             headless=self.headless,
@@ -222,23 +220,64 @@ class Browser:
 
         return options
 
-    def open(self, url: str) -> None:
+    def open(self, url: str, in_new_tab: bool = False) -> None:
         """
         Opens the specified URL in the browser and returns the Browser instance.
+        If in_new_tab=True, opens in a new tab and closes the current one.
 
         Args:
-            url (str): The URL to be opened in the browser.
+            url: URL to open
+            in_new_tab: If True, will replace current tab with new one
         """
+        if in_new_tab:
+            current_tab_handle = self.driver.current_window_handle
+            self.driver.switch_to.new_window('tab')
+            new_tab_handle = self.driver.current_window_handle
+            self.driver.switch_to.window(current_tab_handle)
+            self.driver.close()
+            self.driver.switch_to.window(new_tab_handle)
         self.driver.get(url=url)
 
     def reset(self) -> None:
         """
-        Resets the browser session by clearing all cookies, local storage,
-        and session storage.
+        Fully resets the browser session with multiple cleanup options.
         """
+        # Clear all browser data
         self.driver.delete_all_cookies()
         self.driver.execute_script("window.localStorage.clear();")
         self.driver.execute_script("window.sessionStorage.clear();")
+
+        # Clear IndexedDB if needed
+        self.driver.execute_script("""
+            try {
+                indexedDB.databases().then(dbs => {
+                    for (let db of dbs) {
+                        indexedDB.deleteDatabase(db.name);
+                    }
+                });
+            } catch(e) {}
+        """)
+
+        # Clear service workers
+        self.driver.execute_script("""
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        """)
+
+        # Save current tab if we need to close others
+        current_tab = self.driver.current_window_handle
+
+        # Close all extra tabs
+        for handle in self.driver.window_handles:
+            if handle != current_tab:
+                self.driver.switch_to.window(handle)
+                self.driver.close()
+        self.driver.switch_to.window(current_tab)
+
+        self.open(url="about:blank", in_new_tab=True)
 
     def add_cookies(self, cookies: List[dict]) -> None:
         """
