@@ -233,6 +233,58 @@ class Updater:
 
         return all([driver_exists, browser_exists])
 
+    @staticmethod
+    def _set_directory_permissions(dir_path: Path) -> bool:
+        """
+        Sets directory permissions to 755 (rwxr-xr-x).
+
+        Args:
+            dir_path (Path): The directory path to set permissions for.
+
+        Returns:
+            bool: True if permissions were successfully set, False otherwise.
+        """
+        if not dir_path.exists():
+            logger.error(f"Директория не найдена: {dir_path}")
+            return False
+
+        try:
+            dir_path.chmod(0o755)
+            logger.debug(f"Установлены права 755 для директории: {dir_path}")
+            return True
+        except PermissionError as err:
+            logger.error(f"Ошибка прав доступа для директории {dir_path}: {err}")
+        except Exception as err:
+            logger.error(f"Неожиданная ошибка для директории {dir_path}: {err}")
+        return False
+
+    def _set_file_permissions_recursive(self, dir_path: Path) -> bool:
+        """
+        Sets executable permissions for all files in directory recursively.
+
+        Args:
+            dir_path (Path): The directory path to process.
+
+        Returns:
+            bool: True if all permissions were set successfully, False otherwise.
+        """
+        if not dir_path.exists():
+            logger.error(f"Директория не найдена: {dir_path}")
+            return False
+
+        success = True
+        for root, dirs, files in os.walk(dir_path):
+            for name in files:
+                file_path = Path(root) / name
+                if not self._set_executable_permissions(file_path):
+                    success = False
+            for name in dirs:
+                dir_path = Path(root) / name
+                if not self._set_directory_permissions(dir_path):
+                    success = False
+
+        return success
+
     def install_browser(self, reinstall: bool = False) -> bool:
         """
         Installs the Chrome browser, optionally reinstalling if specified.
@@ -262,6 +314,10 @@ class Updater:
         self.temp_dir.mkdir(parents=True, exist_ok=True)
         self.browser_dir.mkdir(parents=True, exist_ok=True)
 
+        # Устанавливаем права на родительские директории
+        self._set_directory_permissions(self.data_dir)
+        self._set_directory_permissions(self.browser_dir)
+
         # Очищаем существующую установку
         logger.info("Очистка предыдущей установки браузера")
         self._clear_browser_directory()
@@ -285,13 +341,18 @@ class Updater:
             logger.debug(f"Удаление временного файла: {zip_path}")
             zip_path.unlink(missing_ok=True)
 
-            # Устанавливаем права на исполнение
+            # Устанавливаем права на исполнение для всех файлов
+            logger.info("Установка прав на исполнение для всех файлов браузера")
+            if not self._set_file_permissions_recursive(self.browser_dir):
+                logger.warning("Не удалось установить права для некоторых файлов")
+
+            # Устанавливаем права на исполнение для основных исполняемых файлов
             logger.info("Установка прав на исполнение для браузера и драйвера")
             if not all([
                 self._set_executable_permissions(self.browser_executable_file),
                 self._set_executable_permissions(self.driver_executable_file)
             ]):
-                logger.error("Не удалось установить права на исполнение")
+                logger.error("Не удалось установить права на исполнение для основных файлов")
 
             # Специальная обработка для macOS
             if self._system_name.lower() == "darwin":
