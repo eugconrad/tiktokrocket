@@ -22,12 +22,21 @@ Contacts:
 Website: https://eugconrad.com
 Copyright © 2025 All Rights Reserved
 """
+import gzip
+import re
+
+import brotli
+import zstandard
+from io import BytesIO
 from pathlib import Path
 from typing import List, Optional
 
-from fake_useragent import UserAgent
+import ua_generator
+from ua_generator.user_agent import UserAgent
 from seleniumwire import undetected_chromedriver as uc
+from seleniumwire.request import Request, Response
 from selenium_stealth import stealth
+from loguru import logger
 
 
 class Browser:
@@ -60,8 +69,8 @@ class Browser:
     driver_executable_file: Path
     user_data_dir: Path
     headless: bool
-    proxy: Optional[dict]
-    user_agent: str
+    proxy: Optional[dict[str, str]]
+    user_agent: UserAgent
     driver: uc.Chrome
 
     def __init__(self, browser_executable_file: Path, driver_executable_file: Path) -> None:
@@ -79,8 +88,7 @@ class Browser:
     def create(
             self,
             headless: bool = False,
-            proxy: Optional[str] = None,
-            user_agent: Optional[str] = None
+            proxy: Optional[str] = None
     ) -> None:
         """
         Creates and configures a new browser instance with specified settings.
@@ -88,7 +96,6 @@ class Browser:
         Args:
             headless (bool): Whether to run the browser in headless mode.
             proxy (Optional[str]): Proxy server address with optional authentication.
-            user_agent (Optional[str]): User agent string to be used.
 
         Returns:
             None
@@ -100,13 +107,19 @@ class Browser:
         self.proxy = self._get_proxy(proxy=proxy)
 
         # --- User agent ---
-        self.user_agent = self._get_user_agent(user_agent=user_agent)
+        self.user_agent = self._generate_user_agent()
 
         # --- Chrome options ---
-        options = self._get_chrome_options(user_agent=user_agent)
+        options = self._get_chrome_options(user_agent=self.user_agent)
 
         # --- Selenium wire options ---
-        sw_options = {'verify_ssl': False}
+        sw_options = {
+            'verify_ssl': False,
+            'suppress_connection_errors': False,
+            'request_storage': 'memory',
+            'request_storage_max_size': 100,
+        }
+
         if self.proxy:
             sw_options['proxy'] = self.proxy
 
@@ -118,6 +131,10 @@ class Browser:
             headless=self.headless,
             seleniumwire_options=sw_options
         )
+
+        # --- Request interceptor ---
+        self.driver.request_interceptor = self._request_interceptor
+        self.driver.response_interceptor = self._response_interceptor
 
         stealth(
             self.driver,
@@ -132,47 +149,104 @@ class Browser:
         if not self.headless:
             self.driver.maximize_window()
 
-    @staticmethod
-    def _get_proxy(proxy) -> Optional[dict[str, str]]:
-        """
-        Parses a proxy string and returns a dictionary with proxy server details.
+    def _request_interceptor(self, request: Request):
+        match = re.search(r'"Google Chrome";v="(\d+)', self.user_agent.ch.brands)
+        if match:
+            major_version = int(match.group(1))
+        else:
+            major_version = "127"
 
-        Args:
-            proxy (str): Proxy server address with optional authentication in the
-                         format 'username:password@server' or 'server'.
+        if "User-Agent" in request.headers:
+            del request.headers['User-Agent']
+        request.headers['User-Agent'] = self.user_agent.text
 
-        Returns:
-            dict | None: A dictionary containing the proxy server details with keys
-                         'server', 'username', and 'password', or None if no proxy
-                         is provided.
-        """
-        if proxy:
-            proxy_parts = proxy.split("@")
-            proxy_data = {"server": f"http://{proxy_parts[-1]}"}
-            if len(proxy_parts) > 1:
-                username, password = proxy_parts[0].split(":")
-                proxy_data.update({"username": username, "password": password})
-            return proxy_data
-        return None
+        if "Dnt" in request.headers:
+            del request.headers["Dnt"]
 
-    @staticmethod
-    def _get_user_agent(user_agent: Optional[str]) -> str:
-        """
-        Generate or return a user agent string.
+        if "Sec-Ch-Ua" in request.headers:
+            del request.headers["Sec-Ch-Ua"]
+        request.headers["Sec-Ch-Ua"] = f'"Chromium";v="{major_version}", "Not)A;Brand";v="99"'
 
-        Args:
-            user_agent (Optional[str]): A user agent string to be used. If None, a random
-                                        user agent for Chrome on Windows PC is generated.
+        if "Sec-Ch-Ua-Mobile" in request.headers:
+            del request.headers["Sec-Ch-Ua-Mobile"]
+        request.headers["Sec-Ch-Ua-Mobile"] = self.user_agent.ch.mobile
 
-        Returns:
-            str: A trimmed user agent string if provided, otherwise a randomly generated one.
-        """
-        if user_agent:
-            return user_agent.rstrip()
-        return UserAgent(browsers=["chrome"], os=["windows"], platforms=["pc"]).random
+        if "Sec-Ch-Ua-Platform" in request.headers:
+            del request.headers["Sec-Ch-Ua-Platform"]
+        request.headers["Sec-Ch-Ua-Platform"] = self.user_agent.ch.platform
+
+    def _response_interceptor(self, request: Request, response: Response):
+        if 'tiktok.com/passport' in request.url:
+            logger.debug(request)
+            logger.debug(self._decompress_response(response))
 
     @staticmethod
-    def _get_chrome_options(user_agent: str) -> uc.ChromeOptions:
+    def _decompress_response(response: Response) -> str:
+        encoding = response.headers.get('Content-Encoding', '').lower()
+        body = response.body
+
+        try:
+            if encoding == 'gzip':
+                return gzip.GzipFile(fileobj=BytesIO(body)).read().decode('utf-8')
+            elif encoding == 'br':
+                return brotli.decompress(body).decode('utf-8')
+            elif encoding == 'zstd':
+                dctx = zstandard.ZstdDecompressor()
+                return dctx.decompress(body).decode('utf-8')
+            else:
+                return body.decode('utf-8')
+        except Exception as e:
+            return f"[Ошибка декодирования: {e}]"
+
+    @staticmethod
+    def _get_proxy(proxy: Optional[str]) -> Optional[dict[str, str]]:
+        """
+        Преобразует прокси строку в формат selenium-wire.
+
+        Поддерживает:
+        - 'ip:port'
+        - 'user:pass@ip:port'
+        - 'http://ip:port'
+        - 'http://user:pass@ip:port'
+        - 'socks5://ip:port'
+        - 'socks5://user:pass@ip:port'
+
+        Возвращает:
+            dict | None: Словарь формата:
+            {
+                'http': 'scheme://user:pass@ip:port',
+                'https': 'scheme://user:pass@ip:port',
+                'no_proxy': 'localhost,127.0.0.1'
+            }
+        """
+        if not proxy:
+            return None
+
+        # Если нет схемы, по умолчанию http
+        if "://" not in proxy:
+            proxy = f"http://{proxy}"
+
+        # selenium-wire требует один и тот же прокси для http и https
+        return {
+            "http": proxy,
+            "https": proxy,
+            "no_proxy": "localhost,127.0.0.1"
+        }
+
+    @staticmethod
+    def _generate_user_agent() -> UserAgent:
+        """
+        Generate or return a user agent object.
+        """
+        user_agent = ua_generator.generate(
+            device='desktop',
+            platform='windows',
+            browser='chrome'
+        )
+        return user_agent
+
+    @staticmethod
+    def _get_chrome_options(user_agent: UserAgent) -> uc.ChromeOptions:
         """
         Configures and returns ChromeOptions for the undetected ChromeDriver.
 
@@ -185,7 +259,7 @@ class Browser:
         """
         # --- Chrome options ---
         options = uc.ChromeOptions()
-        options.add_argument(f"--user-agent={user_agent}")
+        options.add_argument(f"--user-agent={user_agent.text}")
 
         # Set Chrome options for better automation experience
         options.add_argument("--disable-popup-blocking")
